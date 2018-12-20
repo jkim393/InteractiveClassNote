@@ -19,8 +19,26 @@
       }
       function updateUrl(content) {
         var div = document.getElementById('output');
-        //div.innerHTML = '<a href="' + url + '">Got it!</a>';
+        div.innerHTML = '<a href="' + url + '">Got it!</a>';
         div.innerHTML = content;
+      }
+      function wrong(z) {
+        var x = document.getElementById(z);
+        if (x.style.display === "none") {
+            x.style.display = "block";
+        } else {
+            x.style.display = "none";
+        }
+        x.style.color = "red";
+      }
+      function correct(z) {
+        var x = document.getElementById(z);
+        if (x.style.display === "none") {
+            x.style.display = "block";
+        } else {
+            x.style.display = "none";
+        }
+        x.style.color = "green";
       }
     </script>
   </head>
