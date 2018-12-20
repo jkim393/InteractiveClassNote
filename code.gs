@@ -9,21 +9,24 @@ var formURL;
 var doc;
 var body;
 var bodyText;
+var qCounter=0; //counter for number of questions
+var cCounter=1; //counter for number of choices
+var eCounter=1; //counter for number of explanations
 
 function processForm(formObject) {
   formURL = formObject.myURL;
   doc = DocumentApp.openByUrl(formURL);
   body = doc.getBody();
   bodyText = body.getText();
-  return ConvertGoogleDocToCleanHtml();
+  return ConvertGoogleDocToCleanHtml();  // Ji Hwan, why are you using global variables?  FV
 }
 
 //from: https://github.com/oazabir/GoogleDoc2Html
-function ConvertGoogleDocToCleanHtml() {
+function ConvertGoogleDocToCleanHtml() { //what is clean?
   //var body = DocumentApp.getActiveDocument().getBody();
   var numChildren = body.getNumChildren();
-  var output = [];
-  var images = [];
+  var output = []; //output html
+  var images = []; //images from the source
   var listCounters = {};
 
   // Walk through all the child elements of the body.
@@ -157,6 +160,29 @@ function processText(item, output) {
     }
     else if (text.trim().indexOf('http://') == 0) {
       output.push('<a href="' + text + '" rel="nofollow">' + text + '</a>');
+    }
+    else if (text.trim().indexOf('Q:') == 0) { //special elements contain it in its own block
+      output.push('<div>' + text.substring(2) +'<br>');
+    }    
+    else if (text.trim().indexOf('C:') == 0) {
+      var s = "";
+      s += cCounter;
+      if (text.trim().indexOf('C: *') == 0) {
+        output.push('<input type="radio" name="' + qCounter + '" onclick="correct(' + cCounter +')">' + text.substring(4));
+      }
+      else {
+        output.push('<input type="radio" name="' + qCounter + '" onclick="wrong(' + cCounter +')">' + text.substring(2));
+      }
+      cCounter += 1;
+    }
+    else if (text.trim().indexOf('E:') == 0) {
+      var s = "";
+      s += eCounter;
+      output.push('<p style="display:none;" id="' + s + '">' + text.substring(2) + "</p>"  );
+      eCounter += 1;
+    }
+    else if (text.trim().indexOf('QE') == 0) {
+      output.push('</div>' +'<br>');
     }
     else {
       output.push(text);
