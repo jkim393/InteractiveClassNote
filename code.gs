@@ -1,263 +1,133 @@
-//function that tells the webapp which html file is used to render
-function doGet() {
-  return HtmlService.createHtmlOutputFromFile('index'); //the name of html file w/o .html
+// Sample gdoc: https://docs.google.com/document/d/1W4_Rx8sIiUVZhfkridFnK2NjeP44nEOiCAuqixZVQE8/edit
+
+// To create a web app with the HTML service, the code must include a doGet() function that tells the script how to serve the page
+// The function that tells the webapp which html file is used as template
+// This function is needed to separate css and client-side javascript from index.html
+// Source: https://developers.google.com/apps-script/guides/html/best-practices#separate_html_css_and_javascript
+function doGet(request) {
+  return HtmlService.createTemplateFromFile('index').evaluate().setTitle('Interactive Note');
 }
 
-//Sample gdoc: https://docs.google.com/document/d/1W4_Rx8sIiUVZhfkridFnK2NjeP44nEOiCAuqixZVQE8/edit
-
-var formURL;
-var doc;
-var body;
-var bodyText;
-var qCounter=0; //counter for number of questions
-var cCounter=1; //counter for number of choices
-var eCounter=1; //counter for number of explanations
-
-function processForm(formObject) {
-  formURL = formObject.myURL;
-  doc = DocumentApp.openByUrl(formURL);
-  body = doc.getBody();
-  bodyText = body.getText();
-  return ConvertGoogleDocToCleanHtml();  // Ji Hwan, why are you using global variables?  FV
+// Function that is used to link external files like CSS and JS with the main html file which is index.html
+// The function basically grabs the content of the file and returns it to where it was called
+function linkFile(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-//from: https://github.com/oazabir/GoogleDoc2Html
-function ConvertGoogleDocToCleanHtml() { //what is clean?
-  //var body = DocumentApp.getActiveDocument().getBody();
+// Function that accesses the google doc via its submitted url
+function getHtml(formObject) {
+  var formURL = formObject.myURL;
+  var sourceDoc = DocumentApp.openByUrl(formURL);
+  var body = sourceDoc.getBody();
+  return convertGoogleDocToHtml(body);  // Ji Hwan, why are you using global variables?  FV; I changed them JH -12/22/18
+}
+
+// Adapted from: https://github.com/oazabir/GoogleDoc2Html
+// Function that returns the converted html
+function convertGoogleDocToHtml(body) { //what is clean?; removed clean JH -12/22/18
   var numChildren = body.getNumChildren();
-  var output = []; //output html
-  var images = []; //images from the source
-  var listCounters = {};
+  var outputHTML = []; // Output html
+  var images = []; // Images from the google doc
 
   // Walk through all the child elements of the body.
   for (var i = 0; i < numChildren; i++) {
     var child = body.getChild(i);
-    output.push(processItem(child, listCounters, images));
+    outputHTML.push(convertElementToHtml(child, images));
   }
-
-  var html = output.join('\r');
+  var html = outputHTML.join('\r');
   return html;
-  //emailHtml(html, images);
-  //createDocumentForHtml(html, images);
 }
 
-function dumpAttributes(atts) {
-  // Log the paragraph attributes.
-  for (var att in atts) {
-    Logger.log(att + ":" + atts[att]);
-  }
-}
-
-function processItem(item, listCounters, images) {
-  var output = [];
-  var prefix = "", suffix = "";
-
-  if (item.getType() == DocumentApp.ElementType.PARAGRAPH) {
-    switch (item.getHeading()) {
-        // Add a # for each heading level. No break, so we accumulate the right number.
-      case DocumentApp.ParagraphHeading.HEADING6: 
-        prefix = "<h6>", suffix = "</h6>"; break;
-      case DocumentApp.ParagraphHeading.HEADING5: 
-        prefix = "<h5>", suffix = "</h5>"; break;
-      case DocumentApp.ParagraphHeading.HEADING4:
-        prefix = "<h4>", suffix = "</h4>"; break;
-      case DocumentApp.ParagraphHeading.HEADING3:
-        prefix = "<h3>", suffix = "</h3>"; break;
-      case DocumentApp.ParagraphHeading.HEADING2:
-        prefix = "<h2>", suffix = "</h2>"; break;
-      case DocumentApp.ParagraphHeading.HEADING1:
-        prefix = "<h1>", suffix = "</h1>"; break;
-      default: 
-        prefix = "<p>", suffix = "</p>";
-    }
-
-    if (item.getNumChildren() == 0)
-      return "";
-  }
-  else if (item.getType() == DocumentApp.ElementType.INLINE_IMAGE)
-  {
-    processImage(item, images, output);
-  }
-  else if (item.getType()===DocumentApp.ElementType.LIST_ITEM) {
-    var listItem = item;
-    var gt = listItem.getGlyphType();
-    var key = listItem.getListId() + '.' + listItem.getNestingLevel();
-    var counter = listCounters[key] || 0;
-
-    // First list item
-    if ( counter == 0 ) {
-      // Bullet list (<ul>):
-      if (gt === DocumentApp.GlyphType.BULLET
-          || gt === DocumentApp.GlyphType.HOLLOW_BULLET
-          || gt === DocumentApp.GlyphType.SQUARE_BULLET) {
-        prefix = '<ul class="small"><li>', suffix = "</li>";
-
-          suffix += "</ul>";
-        }
-      else {
-        // Ordered list (<ol>):
-        prefix = "<ol><li>", suffix = "</li>";
-      }
+// Recursive function that converts each element within the google doc structure into a html
+function convertElementToHtml(element, images) {
+  var outputHTML = [];
+  var openingTagHtml = "", closingTagHtml = "";
+  // Base case1: h1 or p type
+  if (element.getType() == DocumentApp.ElementType.PARAGRAPH) {
+    if (element.getHeading() == DocumentApp.ParagraphHeading.HEADING1) {
+      openingTagHtml = "<h1>", closingTagHtml = "</h1>";
     }
     else {
-      prefix = "<li>";
-      suffix = "</li>";
+      openingTagHtml = "<p>", closingTagHtml = "</p>";
     }
-
-    if (item.isAtDocumentEnd() || item.getNextSibling().getType() != DocumentApp.ElementType.LIST_ITEM) {
-      if (gt === DocumentApp.GlyphType.BULLET
-          || gt === DocumentApp.GlyphType.HOLLOW_BULLET
-          || gt === DocumentApp.GlyphType.SQUARE_BULLET) {
-        suffix += "</ul>";
-      }
-      else {
-        // Ordered list (<ol>):
-        suffix += "</ol>";
-      }
-
-    }
-
-    counter++;
-    listCounters[key] = counter;
+    outputHTML.push(openingTagHtml);
   }
-
-  output.push(prefix);
-
-  if (item.getType() == DocumentApp.ElementType.TEXT) {
-    processText(item, output);
+  // Base case2: actual text
+  if (element.getType() == DocumentApp.ElementType.TEXT) {
+    convertTextToHtml(element, outputHTML);
   }
+  // Base case3: image
+  else if (element.getType() == DocumentApp.ElementType.INLINE_IMAGE) {
+    convertImageToHtml(element, images, outputHTML);
+  }
+  // Recursive part: if children exists (in <p> or <h1>)
   else {
-
-
-    if (item.getNumChildren) {
-      var numChildren = item.getNumChildren();
+    if (element.getNumChildren) {
+      var numChildren = element.getNumChildren();
 
       // Walk through all the child elements of the doc.
       for (var i = 0; i < numChildren; i++) {
-        var child = item.getChild(i);
-        output.push(processItem(child, listCounters, images));
+        var child = element.getChild(i);
+        outputHTML.push(convertElementToHtml(child, images));
       }
     }
-
+    else {return "";} //no children
   }
-
-  output.push(suffix);
-  return output.join('');
+  outputHTML.push(closingTagHtml);
+  return outputHTML.join('');
 }
 
+// Global variables for counters. They are used temporarily
+// At the moment, I need them to assign different name and id to each choice/question/explanation
+var qCounter=0; // Counter for number of questions
+var cCounter=1; // Counter for number of choices
+var eCounter=1; // Counter for number of explanations
 
-function processText(item, output) {
-  var text = item.getText();
-  var indices = item.getTextAttributeIndices();
+// Function that processes and pushes actual text to output
+// Currently, the function only takes only the first appearing text format within a paragraph.
+// E.g. if a sentence starts with bold format, the entire sentence will be bold. 
+// Potential fix will be using a for loop on indices array or recursion.
+function convertTextToHtml(element, outputHTML) {
+  var text = element.getText(); // Gets the actual text of the element
 
-  if (indices.length <= 1) {
-    // Assuming that a whole para fully italic is a quote
-    if(item.isBold()) {
-      output.push('<b>' + text + '</b>');
-    }
-    else if(item.isItalic()) {
-      output.push('<blockquote>' + text + '</blockquote>');
-    }
-    else if (text.trim().indexOf('http://') == 0) {
-      output.push('<a href="' + text + '" rel="nofollow">' + text + '</a>');
-    }
-    else if (text.trim().indexOf('Q:') == 0) { //special elements contain it in its own block
-      output.push('<div>' + text.substring(2) +'<br>');
-    }    
-    else if (text.trim().indexOf('C:') == 0) {
-      var s = "";
-      s += cCounter;
-      if (text.trim().indexOf('C: *') == 0) {
-        output.push('<input type="radio" name="' + qCounter + '" onclick="correct(' + cCounter +')">' + text.substring(4));
-      }
-      else {
-        output.push('<input type="radio" name="' + qCounter + '" onclick="wrong(' + cCounter +')">' + text.substring(2));
-      }
-      cCounter += 1;
-    }
-    else if (text.trim().indexOf('E:') == 0) {
-      var s = "";
-      s += eCounter;
-      output.push('<p style="display:none;" id="' + s + '">' + text.substring(2) + "</p>"  );
-      eCounter += 1;
-    }
-    else if (text.trim().indexOf('QE') == 0) {
-      output.push('</div>' +'<br>');
+  if(element.isBold()) { // Bold text type
+    outputHTML.push('<b>' + text + '</b>');
+  }
+  else if(element.isItalic()) { // Italic text type
+    outputHTML.push('<blockquote>' + text + '</blockquote>');
+  }
+  else if (text.trim().indexOf('http://') == 0 || text.trim().indexOf('https://') == 0) { // A http or https link
+    outputHTML.push('<a href="' + text + '" rel="nofollow">' + text + '</a>');
+  }
+  else if (text.trim().indexOf('Q:') == 0) { // Question text
+    outputHTML.push('<div>' + text.substring(2) +'<br>');
+  }    
+  else if (text.trim().indexOf('C:') == 0) { // Answer choice text
+    if (text.trim().indexOf('C: *') == 0) { // Correct answer choice text
+      outputHTML.push('<input type="radio" name="' + qCounter + '" onclick="correct(' + cCounter +')">' + text.substring(4));
     }
     else {
-      output.push(text);
+      outputHTML.push('<input type="radio" name="' + qCounter + '" onclick="wrong(' + cCounter +')">' + text.substring(2));
     }
+    cCounter += 1;
   }
-  else {
-
-    for (var i=0; i < indices.length; i ++) {
-      var partAtts = item.getAttributes(indices[i]);
-      var startPos = indices[i];
-      var endPos = i+1 < indices.length ? indices[i+1]: text.length;
-      var partText = text.substring(startPos, endPos);
-
-      Logger.log(partText);
-
-      if (partAtts.ITALIC) {
-        output.push('<i>');
-      }
-      if (partAtts.BOLD) {
-        output.push('<b>');
-      }
-      if (partAtts.UNDERLINE) {
-        output.push('<u>');
-      }
-
-      // If someone has written [xxx] and made this whole text some special font, like superscript
-      // then treat it as a reference and make it superscript.
-      // Unfortunately in Google Docs, there's no way to detect superscript
-      if (partText.indexOf('[')==0 && partText[partText.length-1] == ']') {
-        output.push('<sup>' + partText + '</sup>');
-      }
-      else if (partText.trim().indexOf('http://') == 0) {
-        output.push('<a href="' + partText + '" rel="nofollow">' + partText + '</a>');
-      }
-      else {
-        output.push(partText);
-      }
-
-      if (partAtts.ITALIC) {
-        output.push('</i>');
-      }
-      if (partAtts.BOLD) {
-        output.push('</b>');
-      }
-      if (partAtts.UNDERLINE) {
-        output.push('</u>');
-      }
-
-    }
+  else if (text.trim().indexOf('E:') == 0) { // Explanation text
+    outputHTML.push('<p style="display:none;" id="' + eCounter + '">' + text.substring(2) + "</p>"  );
+    eCounter += 1;
   }
-}
+  else if (text.trim().indexOf('QE') == 0) { // Marker for the end of a question
+    outputHTML.push('</div>' +'<br>');
+  }
+  else { // Text with no special format
+    outputHTML.push(text);
+  }
+
+} // End of convertText function
 
 
-function processImage(item, images, output)
+// Function that converts image and pushes image to output
+// Currently, the image can be accessed if the url of the image is linked to the image in google doc
+function convertImageToHtml(element, images, outputHTML)
 {
-  images = images || [];
-  var blob = item.getBlob();
-  var contentType = blob.getContentType();
-  var extension = "";
-  if (/\/png$/.test(contentType)) {
-    extension = ".png";
-  } else if (/\/gif$/.test(contentType)) {
-    extension = ".gif";
-  } else if (/\/jpe?g$/.test(contentType)) {
-    extension = ".jpg";
-  } else {
-    throw "Unsupported image type: "+contentType;
-  }
-  var imagePrefix = "Image_";
-  var imageCounter = images.length;
-  var name = imagePrefix + imageCounter + extension;
-  imageCounter++;
-  output.push('<img src="cid:'+name+'" />');
-  images.push( {
-    "blob": blob,
-    "type": contentType,
-    "name": name});
+  outputHTML.push('<img src="'+element.getLinkUrl()+'" alt="Failed to display image">');
 }
