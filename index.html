@@ -2,51 +2,16 @@
 <html>
   <head>
     <base target="_top">
-    <script>
-      // Prevent forms from submitting.
-      function preventFormSubmit() {
-        var forms = document.querySelectorAll('form');
-        for (var i = 0; i < forms.length; i++) {
-          forms[i].addEventListener('submit', function(event) {
-            event.preventDefault();
-          });
-        }
-      }
-      window.addEventListener('load', preventFormSubmit);
-
-      function handleFormSubmit(formObject) {
-        google.script.run.withSuccessHandler(updateUrl).processForm(formObject);
-      }
-      function updateUrl(content) {
-        var div = document.getElementById('output');
-        //div.innerHTML = '<a href="' + url + '">Got it!</a>';
-        div.innerHTML = content;
-      }
-      function wrong(z) {
-        var x = document.getElementById(z);
-        if (x.style.display === "none") {
-            x.style.display = "block";
-        } else {
-            x.style.display = "none";
-        }
-        x.style.color = "red";
-      }
-      function correct(z) {
-        var x = document.getElementById(z);
-        if (x.style.display === "none") {
-            x.style.display = "block";
-        } else {
-            x.style.display = "none";
-        }
-        x.style.color = "green";
-      }
-    </script>
+    <!-- CSS file named "stylesheet.html" is linked liked this -->
+    <?!= linkFile('stylesheet'); ?>
   </head>
   <body>
-    <form id="myForm" onsubmit="handleFormSubmit(this)">
+    <form id="myForm" onsubmit="handleFormSubmit(this)"> <!-- Passes the form as object via this-->
       <input name="myURL" type="text" />
       <input type="submit" value="Submit" />
     </form>
     <div id="output"></div>
   </body>
+  <!-- Client-side JavaScript file named "javascript.html" is linked liked this -->
+  <?!= linkFile('javascript'); ?>
 </html>
