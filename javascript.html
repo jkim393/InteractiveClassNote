@@ -1,0 +1,53 @@
+<!-- Client-side JavaScript File-->
+
+<!-- Example of using external javascript library -->
+<!-- <script src="https://code.jquery.com/jquery-1.8.3.min.js"></script> -->
+
+<!-- Custom JavaScript-->
+<script>
+// https://developers.google.com/apps-script/guides/html/communication#forms
+// Prevents forms from submitting; not sure about this part myself; but without this code, the page is refreshed;
+// Maybe since the code takes the formObject through eventlistener, it doesn't need the actual submission -JH 12/22/18
+function preventFormSubmit() {
+  var form = document.querySelector('form');
+  form.addEventListener('submit', function(event) {
+    event.preventDefault();
+  });
+}
+window.addEventListener('load', preventFormSubmit);
+      
+// Value returned by getHTML (a server-side function) is passed to display function as parameter (named content in line 13)
+function handleFormSubmit(formObject) {
+  google.script.run.withSuccessHandler(renderHTML).getHtml(formObject); 
+}
+      
+// Updates the html div(of id 'output') with the result of getHTML function (which is the html of the gdoc)
+function renderHTML(content) {
+  var div = document.getElementById('output');
+  div.innerHTML = content;
+}
+
+// Function to show the explanation for the wrong choice(in red color)
+function wrong(choice) {
+  var explanation = document.getElementById(choice);
+  if (explanation.style.display === "none") {
+    explanation.style.display = "block";
+  } 
+  else {
+    explanation.style.display = "none";
+  }
+  explanation.style.color = "red";
+}
+
+// Function to show the explanation for the correct choice(in green color) 
+function correct(choice) {
+  var explanation = document.getElementById(choice);
+  if (explanation.style.display === "none") {
+    explanation.style.display = "block";
+  } 
+  else {
+    explanation.style.display = "none";
+  }
+  explanation.style.color = "green";
+}
+</script>
