@@ -28,7 +28,8 @@ function convertGoogleDocToHtml(body) { //what is clean?; removed clean JH -12/2
   var numChildren = body.getNumChildren();
   var outputHTML = []; // Output html
   var images = []; // Images from the google doc
-
+  //var counters = {qCounter=0, cCounter=1, eCounter=1}; //JS object for all the counters needed for assigning unique ids to question, choice and explanation
+  
   // Walk through all the child elements of the body.
   for (var i = 0; i < numChildren; i++) {
     var child = body.getChild(i);
@@ -60,6 +61,10 @@ function convertElementToHtml(element, images) {
   else if (element.getType() == DocumentApp.ElementType.INLINE_IMAGE) {
     convertImageToHtml(element, images, outputHTML);
   }
+  // Base case4: table
+  //else if (element.getType() == DocumentApp.ElementType.TABLE){
+    
+  //}
   // Recursive part: if children exists (in <p> or <h1>)
   else {
     if (element.getNumChildren) {
@@ -97,7 +102,13 @@ function convertTextToHtml(element, outputHTML) {
     outputHTML.push('<blockquote>' + text + '</blockquote>');
   }
   else if (text.trim().indexOf('http://') == 0 || text.trim().indexOf('https://') == 0) { // A http or https link
-    outputHTML.push('<a href="' + text + '" rel="nofollow">' + text + '</a>');
+    if(text.trim().indexOf('https://www.youtube.com') == 0 || text.trim().indexOf('http://www.youtube.com') == 0){ // A youtube link
+      var youtubeID = getYoutubeID(text.trim());
+      outputHTML.push('<iframe src="https://www.youtube.com/embed/' + youtubeID + '"> </iframe>'); //embed in iframe
+    } 
+    else { // A normal link
+      outputHTML.push('<a href="' + text + '" rel="nofollow">' + text + '</a>');
+    }
   }
   else if (text.trim().indexOf('Q:') == 0) { // Question text
     outputHTML.push('<div>' + text.substring(2) +'<br>');
@@ -130,4 +141,20 @@ function convertTextToHtml(element, outputHTML) {
 function convertImageToHtml(element, images, outputHTML)
 {
   outputHTML.push('<img src="'+element.getLinkUrl()+'" alt="Failed to display image">');
+}
+
+// Function to get id of youtube video for two most common types of youtube url: https://youtube.com/watch?v=ID or https://youtube.com/watch?v=ID&whatever else
+// Potentially need to use regex to accommodate different types of urls
+// https://stackoverflow.com/questions/3452546/how-do-i-get-the-youtube-video-id-from-a-url
+function getYoutubeID(url){
+  var videoID = "";
+  var idStartPosition = 2 + url.indexOf('v=');
+  var ampersandPosition = url.indexOf('&');
+  if(ampersandPosition != -1) {
+    videoID = url.substring(idStartPosition, ampersandPosition);
+  }
+  else {
+    videoID = url.substring(idStartPosition);
+  }
+  return videoID;
 }
