@@ -20,14 +20,12 @@ function getHtml(formObject) {
   var sourceDoc = DocumentApp.openByUrl(formURL);
   var body = sourceDoc.getBody();
   
-  var images = ['<img alt="" src="https://lh3.googleusercontent.com/hubgUMe-yMf2OpldWCNcvDKcW9T5Gbw4cNbLVoGLir5P0XQA01fVlnANjEc_DAU7EH28CvYMM6OE5tFMQkoAgqteEfLkE2pH1qinbRjUJbujNMTXrgdt09kjW6uK2GXoonqY6dB5" style="width: 225.00px; height: 225.00px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">', 
-  '<img alt="" src="https://lh4.googleusercontent.com/WDqE1rsZZhStkN0V1JD_C6l0w6VKRFnesQiMYnNaSAzYYDV37j2r7_IRyhassBd3bCTXwItxKx9M7ft9rJ3gb3LB-O3bF9sHC6sONlobONKsuOmxfIFtQpBx3knTGu1DMg7cKgHy" style="width: 243.50px; height: 243.50px; margin-left: 0.00px; margin-top: 0.00px; transform: rotate(0.00rad) translateZ(0px); -webkit-transform: rotate(0.00rad) translateZ(0px);" title="">']; // Images from the google doc
-  return convertGoogleDocToHtml(body, images);  // Ji Hwan, why are you using global variables?  FV; I changed them JH -12/22/18
+  return convertGoogleDocToHtml(body);  // Ji Hwan, why are you using global variables?  FV; I changed them JH -12/22/18
 }
 
 // Adapted from: https://github.com/oazabir/GoogleDoc2Html
 // Function that returns the converted html
-function convertGoogleDocToHtml(body, images) { //what is clean?; removed clean JH -12/22/18
+function convertGoogleDocToHtml(body) { //what is clean?; removed clean JH -12/22/18
   var numChildren = body.getNumChildren();
   var outputHTML = []; // Output html
   var counters = {qCounter:0, cCounter:1, eCounter:1, iCounter:0}; // qCounter: numofquestions; cCounter: numofchoices; eCounter: numofexplanations
@@ -35,14 +33,14 @@ function convertGoogleDocToHtml(body, images) { //what is clean?; removed clean 
   // Walk through all the child elements of the body.
   for (var i = 0; i < numChildren; i++) {
     var child = body.getChild(i);
-    outputHTML.push(convertElementToHtml(child, images, counters));
+    outputHTML.push(convertElementToHtml(child, counters));
   }
   var html = outputHTML.join('\r');
   return html;
 }
 
 // Recursive function that converts each element within the google doc structure into a html
-function convertElementToHtml(element, images, counters) {
+function convertElementToHtml(element, counters) {
   var outputHTML = [];
   var openingTagHtml = "", closingTagHtml = "";
   // Base case1: h1 or p type
@@ -61,7 +59,7 @@ function convertElementToHtml(element, images, counters) {
   }
   // Base case3: image
   else if (element.getType() == DocumentApp.ElementType.INLINE_IMAGE) {
-    convertImageToHtml(element, images, outputHTML, counters);
+    convertImageToHtml(element, outputHTML, counters);
   }
   // Recursive part: if children exists (in <p> or <h1>)
   else {
@@ -71,7 +69,7 @@ function convertElementToHtml(element, images, counters) {
       // Walk through all the child elements of the doc.
       for (var i = 0; i < numChildren; i++) {
         var child = element.getChild(i);
-        outputHTML.push(convertElementToHtml(child, images, counters));
+        outputHTML.push(convertElementToHtml(child, counters));
       }
     }
     else {return "";} //no children
@@ -130,11 +128,11 @@ function convertTextToHtml(element, outputHTML, counters) {
 
 // Function that converts image and pushes image to output
 // Currently, the image can be accessed if the url of the image is linked to the image in google doc
-function convertImageToHtml(element, images, outputHTML, counters)
+function convertImageToHtml(element, outputHTML, counters)
 {
-  //outputHTML.push('<img src="'+element.getLinkUrl()+'" alt="Failed to display image">');
-  outputHTML.push('\'' + images[counters.iCounter] + '\'');
-  counters.iCounter += 1;
+  outputHTML.push('<img src="'+element.getLinkUrl()+'" alt="Failed to display image">');
+  //outputHTML.push('\'' + images[counters.iCounter] + '\'');
+  //counters.iCounter += 1;
 }
 
 // Function to get id of youtube video for two most common types of youtube url: https://youtube.com/watch?v=ID or https://youtube.com/watch?v=ID&whatever else
